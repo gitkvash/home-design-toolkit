@@ -14,14 +14,14 @@ the **order of work** and the **checks**, not any single design.
 1. **Measure before you design.** Layouts built on a screenshot of a plan went wrong in 7 places in one day. Start
    with `home-survey`. Everything else depends on it.
 2. **Write the brief as rules, not wishes.** "Kitchen on the east wall, gas hob mid-run, no power to the island,
-   TV on the south wall" is a brief a layout can be checked against. Keep it in a decision log (`renovation-decisions`, Pro).
-3. **Make several comparable schemes per room**, plus one plain baseline (`interior-schemes`, Pro). Variants that all use
+   TV on the south wall" is a brief a layout can be checked against. Keep it in a decision log (`renovation-decisions`).
+3. **Make several comparable schemes per room**, plus one plain baseline (`interior-schemes`). Variants that all use
    clever tricks give you nothing to compare against.
 4. **Audit geometry, not notes** (`layout-clearances`). Doors must swing, routes must be wide enough, nothing may
    poke through a wall. Run `tools/clash-audit`.
-5. **Plan the wet and technical rooms by rules** (`kitchen-planning`, `bathroom-planning`, `lighting-planning`, Pro).
-6. **Choose finishes once, for the whole home** (`finishes-and-quantities`, Pro), then **research products** by price per
-   m² and real availability (`product-research`, Pro).
+5. **Plan the wet and technical rooms by rules** (`kitchen-planning`, `bathroom-planning`, `lighting-planning`).
+6. **Choose finishes once, for the whole home** (`finishes-and-quantities`), then **research products** by price per
+   m² and real availability (`product-research`).
 7. **Freeze decisions when you buy.** A bought tile or a booked window ends the discussion: update the model, drop
    the alternatives, stop proposing new ones.
 8. **Hand trades a drawing, not a render** (carpenter piece list, tiler layout, electrician sheet).
@@ -31,12 +31,16 @@ the **order of work** and the **checks**, not any single design.
 | You want to... | Use |
 |---|---|
 | get dimensions and a trustworthy plan | `home-survey` |
-| place furniture, check doors and routes | `layout-clearances` (agent: `layout-auditor`) |
+| place furniture, check doors and routes | `layout-clearances`, then `interior-schemes` |
+| design a kitchen | `kitchen-planning` |
+| design a bathroom | `bathroom-planning` |
+| plan lighting | `lighting-planning` |
+| pick floors, tiles, wallpaper, paint, radiators; count what to buy | `finishes-and-quantities` |
+| find and compare products in local shops | `product-research` |
+| keep decisions, budget, order of works straight | `renovation-decisions` |
+| build an interactive 3D model of a room | `build-3d-room-model` |
 
-The Pro edition adds `interior-schemes`, `kitchen-planning`, `bathroom-planning`, `lighting-planning`,
-`finishes-and-quantities`, `product-research`, `renovation-decisions` and `build-3d-room-model`. Without it, apply
-the method above directly: write the brief as rules, keep a decision log, compare products by price per m² with a
-reserve, and audit every layout.
+Agents: `interior-designer`, `layout-auditor`, `product-scout`, `renovation-planner`. Command: `/home-design:start`.
 
 ## Ground rules for the assistant
 

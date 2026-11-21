@@ -56,7 +56,7 @@ corner, width, sill, head, source), fixed services (stack, gas, electrics board,
 **measure-on-site list** ordered by how many designs depend on each item. Put the two corner-to-corner diagonals
 of the largest room first: they cost five minutes and settle everything.
 
-Use `examples/example-flat/plan.json` as the machine-readable form; it feeds `tools/clash-audit`.
+Use `examples/example-flat/plan.json` as the machine-readable form; it feeds `tools/clash-audit` and `tools/room-viewer`.
 
 ## Lesson
 

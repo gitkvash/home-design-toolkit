@@ -24,3 +24,5 @@ jobs:
         run: npm test
       - name: Example plan validates and audits clean
         run: npm run audit:example
+      - name: Product-research helpers
+        run: npm run test:py

@@ -5,7 +5,7 @@
     {
       "name": "home-design",
       "source": "./",
-      "description": "Skills, agents and tools for planning and renovating a home."
+      "description": "11 skills, 4 agents and 4 tools for planning and renovating a home: survey, layout audit, kitchen, bath, lighting, finishes, 3D viewer."
     }
   ]
 }

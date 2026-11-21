@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Room viewer</title>
+<style>
+  :root { --bg:#f4f1ec; --fg:#222; --panel:#fffdfa; --line:#d9d3c8; --accent:#b4572b; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1d1b19; --fg:#eee; --panel:#2a2724; --line:#443f39; --accent:#e08a5b; } }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,sans-serif; }
+  #app { position:fixed; inset:0; }
+  canvas { display:block; width:100%; height:100%; touch-action:none; }
+  #bar { position:fixed; left:8px; right:8px; top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+         background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 8px; }
+  #bar button, #bar select { font:inherit; color:inherit; background:transparent; border:1px solid var(--line); border-radius:6px; padding:4px 10px; cursor:pointer; }
+  #bar button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #info { position:fixed; left:8px; bottom:8px; right:8px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 10px; max-height:30vh; overflow:auto; }
+  #info b { color:var(--accent); }
+  .hint { opacity:.7 }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="bar">
+  <select id="room" title="Room"></select>
+  <button id="cut" class="on" title="Hide the walls nearest the camera">Cut-away</button>
+  <button id="doors" title="Open or close every door">Doors</button>
+  <button id="ceil" title="Show the ceiling">Ceiling</button>
+  <button id="top" title="Plan view">Plan</button>
+  <button id="load" title="Load another plan.json">Load…</button>
+  <span class="hint">Drag to orbit, wheel to zoom. Tap furniture for its size.</span>
+</div>
+<div id="info">Loading…</div>
+<input id="file" type="file" accept=".json,application/json" hidden>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const PLAN_URL = new URLSearchParams(location.search).get('plan') || '../../examples/example-flat/plan.json';
+const T = 0.1; // wall thickness drawn
+const el = (id) => document.getElementById(id);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+el('app').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x887766, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(4, 8, 3); scene.add(sun);
+
+let plan, group, doorLeaves = [], wallMeshes = [], ceiling, pickables = [], doorsOpen = false;
+
+const matWall = new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.95 });
+const matFloor = new THREE.MeshStandardMaterial({ color: 0xb08a63, roughness: 0.8 });
+const matGlass = new THREE.MeshStandardMaterial({ color: 0x9cc8e8, transparent: true, opacity: 0.35 });
+const matDoor = new THREE.MeshStandardMaterial({ color: 0xf6f3ee, roughness: 0.6 });
+const palette = [0x5b7c99, 0x8a9a5b, 0xb5654a, 0x9d7bb0, 0xc9a24a, 0x6aa39b, 0xa46f6f, 0x7d7d7d];
+
+// model coords: x east, z north (plan) -> three: x, y up, -z so north is away from the viewer
+const P = (x, y, z) => new THREE.Vector3(x, y, -z);
+
+function box(x0, z0, w, d, y0, h, mat) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.copy(P(x0 + w / 2, y0 + h / 2, z0 + d / 2));
+  return m;
+}
+
+function wallSegments(room, wall, H) {
+  // openings on this wall -> split into pier boxes, lintel and sill boxes
+  const len = wall === 'S' || wall === 'N' ? room.size.w : room.size.d;
+  const holes = [...(room.doors || []).filter((o) => o.wall === wall).map((o) => ({ a: o.pos - o.width / 2, b: o.pos + o.width / 2, sill: 0, head: 2.1, glass: false, o })),
+    ...(room.windows || []).filter((o) => o.wall === wall).map((o) => ({ a: o.pos - o.width / 2, b: o.pos + o.width / 2, sill: o.sill, head: o.head, glass: true, o }))]
+    .sort((p, q) => p.a - q.a);
+  const out = [];
+  const add = (a, b, y0, y1, mat) => { if (b - a > 0.001 && y1 - y0 > 0.001) out.push({ a, b, y0, y1, mat }); };
+  let cur = 0;
+  for (const h of holes) {
+    add(cur, h.a, 0, H, matWall);
+    add(h.a, h.b, h.head, H, matWall);
+    add(h.a, h.b, 0, h.sill, matWall);
+    if (h.glass) out.push({ a: h.a, b: h.b, y0: h.sill, y1: h.head, mat: matGlass, glass: true });
+    cur = h.b;
+  }
+  add(cur, len, 0, H, matWall);
+  return out.map((s) => {
+    const along = s.b - s.a, hh = s.y1 - s.y0;
+    let x0, z0, w, d;
+    if (wall === 'S') { x0 = s.a; z0 = -T; w = along; d = T; }
+    else if (wall === 'N') { x0 = s.a; z0 = room.size.d; w = along; d = T; }
+    else if (wall === 'W') { x0 = -T; z0 = s.a; w = T; d = along; }
+    else { x0 = room.size.w; z0 = s.a; w = T; d = along; }
+    const m = box(x0, z0, w, d, s.y0, hh, s.mat);
+    m.userData.wall = wall;
+    return m;
+  });
+}
+
+function doorLeaf(room, d) {
+  const L = d.width, pivot = new THREE.Group();
+  const geo = new THREE.BoxGeometry(L, 2.05, 0.04);
+  const leaf = new THREE.Mesh(geo, matDoor);
+  leaf.position.set((d.hinge === 'end' ? -L : L) / 2, 1.025, 0);
+  pivot.add(leaf);
+  const along = d.pos - L / 2 + (d.hinge === 'end' ? L : 0);
+  const into = d.opens === 'out' ? -1 : 1;
+  const rot0 = d.wall === 'W' || d.wall === 'E' ? Math.PI / 2 : 0; // closed leaf lies along the wall
+  const at = { S: [along, 0], N: [along, room.size.d], W: [0, along], E: [room.size.w, along] }[d.wall];
+  pivot.position.copy(P(at[0], 0, at[1]));
+  // choose the turn direction whose open leaf tip lands on the wanted side of the wall (inside for 'in')
+  const wantInside = into === 1;
+  let sign = 1;
+  for (const sg of [1, -1]) {
+    const th = rot0 + sg * Math.PI / 2, lx = d.hinge === 'end' ? -L : L; // tip in local x
+    const tx = at[0] + lx * Math.cos(th), tz = at[1] + lx * Math.sin(th); // model coords (z north)
+    const inside = tx > -1e-6 && tx < room.size.w + 1e-6 && tz > -1e-6 && tz < room.size.d + 1e-6 && Math.hypot(tx - at[0], tz - at[1]) > 0;
+    const edge = Math.abs(tx - at[0]) + Math.abs(tz - at[1]) > 0 && (d.wall === 'S' ? tz > 0.01 : d.wall === 'N' ? tz < room.size.d - 0.01 : d.wall === 'W' ? tx > 0.01 : tx < room.size.w - 0.01);
+    if (edge === wantInside && (inside || !wantInside)) { sign = sg; break; }
+  }
+  pivot.rotation.y = rot0;
+  pivot.userData = { rot0, sign, door: d };
+  return pivot;
+}
+
+function build(roomId) {
+  if (group) scene.remove(group);
+  group = new THREE.Group(); scene.add(group);
+  doorLeaves = []; wallMeshes = []; pickables = [];
+  const room = plan.rooms.find((r) => r.id === roomId) || plan.rooms[0];
+  const H = plan.ceiling || 2.6;
+  const floor = box(0, 0, room.size.w, room.size.d, -0.02, 0.02, matFloor); group.add(floor);
+  for (const w of ['S', 'N', 'W', 'E']) for (const m of wallSegments(room, w, H)) { group.add(m); wallMeshes.push(m); }
+  ceiling = box(0, 0, room.size.w, room.size.d, H, 0.03, new THREE.MeshStandardMaterial({ color: 0xffffff })); ceiling.visible = el('ceil').classList.contains('on'); group.add(ceiling);
+  for (const d of room.doors || []) { const g = doorLeaf(room, d); group.add(g); doorLeaves.push(g); }
+  (room.items || []).forEach((it, i) => {
+    const m = box(it.x, it.z, it.w, it.d, it.y0 || 0, it.h, new THREE.MeshStandardMaterial({ color: it.color || palette[i % palette.length], roughness: 0.7 }));
+    m.userData.item = it; group.add(m); pickables.push(m);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 }));
+    edges.position.copy(m.position); group.add(edges);
+  });
+  const cx = room.size.w / 2, cz = room.size.d / 2;
+  controls.target.copy(P(cx, 0.8, cz));
+  camera.position.copy(P(cx + room.size.w * 0.9, room.size.d * 0.9 + 2, -room.size.d * 0.6));
+  setDoors(doorsOpen);
+  el('info').innerHTML = `<b>${room.label || room.id}</b> · ${room.size.w} × ${room.size.d} m = ${(room.size.w * room.size.d).toFixed(2)} m² · ${(room.items || []).length} items · ${(room.doors || []).length} doors`;
+}
+
+function setDoors(open) {
+  doorsOpen = open; el('doors').classList.toggle('on', open);
+  for (const g of doorLeaves) g.rotation.y = g.userData.rot0 + (open ? g.userData.sign * Math.PI / 2 : 0);
+}
+
+function cutaway() {
+  if (!el('cut').classList.contains('on')) { wallMeshes.forEach((m) => (m.visible = true)); return; }
+  const cam = camera.position;
+  wallMeshes.forEach((m) => {
+    const dx = cam.x - m.position.x, dz = cam.z - m.position.z;
+    const n = { S: [0, 1], N: [0, -1], W: [-1, 0], E: [1, 0] }[m.userData.wall]; // outward normal in model (x, -z)
+    // hide a wall when the camera is on its outside and looking through it
+    const out = n[0] * (cam.x - controls.target.x) + n[1] * (cam.z - controls.target.z);
+    m.visible = !(out > 0.5 && m.geometry.parameters.height > 0.5);
+  });
+}
+
+const ray = new THREE.Raycaster();
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (e.movementX || e.movementY) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  const hit = ray.intersectObjects(pickables)[0];
+  if (hit) { const i = hit.object.userData.item; el('info').innerHTML = `<b>${i.id}</b> · ${Math.round(i.w * 100)} × ${Math.round(i.d * 100)} × ${Math.round(i.h * 100)} cm · at x ${i.x}, z ${i.z}`; }
+});
+
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+el('room').onchange = () => build(el('room').value);
+el('cut').onclick = () => el('cut').classList.toggle('on');
+el('doors').onclick = () => setDoors(!doorsOpen);
+el('ceil').onclick = () => { el('ceil').classList.toggle('on'); ceiling.visible = el('ceil').classList.contains('on'); };
+el('top').onclick = () => { const t = controls.target; camera.position.set(t.x, 9, t.z + 0.01); };
+el('load').onclick = () => el('file').click();
+el('file').onchange = async () => { init(JSON.parse(await el('file').files[0].text())); };
+
+function init(p) {
+  plan = p;
+  el('room').innerHTML = plan.rooms.map((r) => `<option value="${r.id}">${r.label || r.id}</option>`).join('');
+  build(plan.rooms[0].id);
+}
+fetch(PLAN_URL).then((r) => r.json()).then(init).catch((e) => { el('info').textContent = 'Could not load ' + PLAN_URL + ' (' + e + '). Serve this folder over http and use ?plan=… or press Load.'; });
+
+renderer.setAnimationLoop(() => { controls.update(); cutaway(); renderer.render(scene, camera); });
+window.__viewer = { get plan() { return plan; }, setDoors, build };
+</script>
+</body>
+</html>

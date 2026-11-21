@@ -57,4 +57,4 @@ laundry cupboard is). Write that in the scheme's note.
 ## What the audit cannot measure (review these by hand)
 
 Sightlines, glare and backlight, what a wall can structurally carry, whether a kitchen run needs the facade altered,
-privacy from the neighbours, noise, and where the heat goes. The Pro `interior-schemes` skill has a review checklist for these.
+privacy from the neighbours, noise, and where the heat goes. See `interior-schemes` for the review checklist.

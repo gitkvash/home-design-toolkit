@@ -1,30 +1,38 @@
 # Home Design Toolkit
 
-Skills, an agent and a tool for planning and renovating a home with an AI assistant. They come from a real project:
-a complete 69 m² flat, from bare shell to bought finishes, planned room by room with 3D models, audits and a lot of
-corrected assumptions.
+**Plan your flat or house renovation with an AI assistant, and stop finding the mistakes after the carpenter leaves.**
 
-The method works anywhere: measure first, write decisions down, audit the geometry, compare products by price per
-m², and freeze a decision once you buy.
+11 skills, 4 agents, a `/home-design:start` command and four tested tools for Claude Code (or any agent that reads
+Markdown instructions). Everything here comes from a real project: a complete 69 m² flat, from bare shell to bought
+finishes, planned room by room with 3D models, layout audits and a lot of corrected assumptions.
+
+Free and open source (MIT). No account, no API key, no installs beyond Node 18+.
 
 *Georgian version: [README.ka.md](README.ka.md)*
 
-## Free in this repo
+[![test](https://github.com/gitkvash/home-design-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/gitkvash/home-design-toolkit/actions/workflows/test.yml)
+![license: MIT](https://img.shields.io/badge/license-MIT-green)
 
-| | |
-|---|---|
-| **Skills** | `home-design-guide` (where to start, the order of work) · `home-survey` (turn a plan screenshot, photos and tape measurements into a plan you can trust) · `layout-clearances` (door swings, walking routes, clearances) |
-| **Agent** | `layout-auditor`: runs the audit, explains each fault, proposes the smallest fix |
-| **Tool** | `tools/clash-audit`: finds furniture through walls, overlaps, blocked door swings and narrow routes in a JSON plan |
-| **Example** | `examples/example-flat/plan.json`: an invented 2-room flat |
-| **Docs** | `docs/lessons-learned.md`: what went wrong and what we would do differently |
+## What it catches
 
-## Pro edition (paid)
+```
+$ node tools/clash-audit/audit.mjs examples/example-flat/plan.json
+# living  clear floor 16.67 m2
+out   ok []
+ovl   ok []
+swing ok []
+route NARROW window: 68 cm (min 75)
+route NARROW kitchen end: 60 cm (min 75)
+```
 
-Eight more skills and three more agents: kitchen planning (appliances, sockets, circuits, gas, tile cuts, carpenter
-list), bathroom planning, lighting (lux, ceiling-gap fit, zones), finishes and quantities with a tested calculator
-(floor, tile, wallpaper repeat and reserve, paint, radiators), product price research across shops, interior scheme
-generation, a renovation decision log, and a three.js 3D room viewer. Open an issue if you are interested.
+The example flat looks fine on a picture. The audit says you cannot comfortably walk to the window or to the end of
+the kitchen.
+
+![The same room in the three.js room viewer](docs/room-viewer.jpg)
+
+A door that hits the sofa, a dishwasher you cannot open with the oven door down, wallpaper ordered without the
+pattern repeat, a pendant that does not fit the ceiling gap. These are the mistakes that cost money. The toolkit turns
+them into checks.
 
 ## Install in Claude Code
 
@@ -33,19 +41,35 @@ generation, a renovation decision log, and a three.js 3D room viewer. Open an is
 /plugin install home-design@home-design-toolkit
 ```
 
-The audit runs on plain Node 18+, no installs:
+Then run `/home-design:start` in an empty folder. It interviews you, creates a master plan, a brief, a decision log
+and a `plan.json`, and tells you the five measurements that would improve accuracy most.
+
+Other assistants (Cursor, Codex, Gemini CLI, ChatGPT projects): the skills are plain Markdown with a short
+front-matter. Paste any `SKILL.md` into the agent's instruction files.
+
+## What is inside
+
+| | |
+|---|---|
+| **Skills** | `home-design-guide` (where to start, the order of work) · `home-survey` (plan screenshot + photos + tape → a plan you can trust) · `layout-clearances` (door swings, routes, clearances) · `interior-schemes` (comparable variants with a plain baseline) · `kitchen-planning` (appliances, sockets, circuits, gas, tile cuts, carpenter list) · `bathroom-planning` · `lighting-planning` (lux, zones, ceiling-gap fit) · `finishes-and-quantities` (floor, tile, wallpaper repeat and reserve, paint, radiators) · `product-research` (compare shops by price per m²) · `renovation-decisions` (append-only decision log, budget, order of works) · `build-3d-room-model` |
+| **Agents** | `interior-designer` · `layout-auditor` (runs the audit, explains each fault, proposes the smallest fix) · `product-scout` · `renovation-planner` |
+| **Command** | `/home-design:start`: interview and project setup |
+| **Tools** | `clash-audit` (furniture through walls, overlaps, blocked door swings, narrow routes) · `quantities` (area, tiles, wallpaper rolls, paint, radiator watts, circuit load, lux) · `room-viewer` (one-file three.js 3D viewer with opening doors) · `product-research` (price normalisation, dedupe, polite scraper starter) |
+| **Examples** | `examples/example-flat/`: an invented 2-room flat (`plan.json`) and a sample decision log |
+| **Docs** | `docs/lessons-learned.md`: what went wrong and what we would do differently |
+
+## Try the tools without an AI
 
 ```
 node tools/clash-audit/audit.mjs examples/example-flat/plan.json
+node tools/quantities/calc.mjs help
+python -m http.server     # then open http://localhost:8000/tools/room-viewer/index.html
 npm test
 ```
 
 Plans are checked against [`tools/clash-audit/plan.schema.json`](tools/clash-audit/plan.schema.json) before the audit
 runs. A malformed plan, or one written in centimetres instead of metres, exits with code 3 and a list of what is wrong.
 Add `"$schema": "<path to plan.schema.json>"` to a plan to get the same checks in your editor.
-
-Other assistants: the skills are plain Markdown with a short front-matter, so you can paste a `SKILL.md` into any
-agent that supports instruction files.
 
 ## The method in eight lines
 
@@ -63,6 +87,12 @@ agent that supports instruction files.
 These are planning aids, not structural, electrical, gas or waterproofing engineering. Confirm with licensed
 professionals and local code. Photo-derived dimensions are ±5-10 cm; a tape measure beats everything here.
 
+## Contributing
+
+Issues and pull requests are welcome: local building rules from your country, new checks for the audit, better
+defaults for the calculators, translations. See [CONTRIBUTING.md](CONTRIBUTING.md). If the toolkit saved you a
+mistake, a ⭐ helps other people find it.
+
 ## License
 
-MIT, see [LICENSE](LICENSE). The Pro edition is licensed separately.
+MIT, see [LICENSE](LICENSE).

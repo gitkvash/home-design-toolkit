@@ -1,14 +1,17 @@
 {
   "name": "home-design-toolkit",
-  "version": "0.1.0",
-  "description": "Free core of the Home Design Toolkit: home survey, layout clearances and a clash audit for floor plans.",
+  "version": "0.2.0",
+  "description": "Home Design Toolkit: Claude Code skills, agents and tools for planning a home renovation.",
   "private": true,
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "test": "node --test tools/clash-audit/audit.test.mjs",
+    "test": "node --test tools/clash-audit/audit.test.mjs tools/quantities/calc.test.mjs",
     "audit": "node tools/clash-audit/audit.mjs",
-    "audit:example": "node tools/clash-audit/audit.mjs examples/example-flat/plan.json"
+    "audit:example": "node tools/clash-audit/audit.mjs examples/example-flat/plan.json",
+    "test:py": "python -m unittest discover tools/product-research"
   }
 }

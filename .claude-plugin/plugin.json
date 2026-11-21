@@ -1,8 +1,9 @@
 {
   "name": "home-design",
-  "version": "0.1.0",
-  "description": "Start planning a home renovation with AI: survey a flat into a trustworthy plan and audit layouts for door swings, routes and clearances. Free core of the Home Design Toolkit.",
+  "version": "0.2.0",
+  "description": "Plan a home renovation with AI: survey a flat into a trustworthy plan, audit layouts for door swings and routes, plan kitchen, bathroom and lighting, count finishes, compare products and view rooms in 3D. 11 skills, 4 agents, 4 tools.",
   "license": "MIT",
+  "repository": "https://github.com/gitkvash/home-design-toolkit",
   "keywords": [
     "interior-design",
     "renovation",

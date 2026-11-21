@@ -3,6 +3,9 @@
 | Folder | What | Run |
 |---|---|---|
 | `clash-audit/` | `out` / `ovl` / `swing` / `route` / clear floor from a plan JSON | `node tools/clash-audit/audit.mjs <plan.json> [room]` · `npm test` |
+| `quantities/` | calculators: area, tile pieces, wallpaper rolls (match, repeat, reserve), paint, radiator watts, circuit load, lux | `node tools/quantities/calc.mjs help` · `npm test` |
+| `room-viewer/` | one-file three.js viewer: walls with openings, doors that open, cut-away, plan view | serve the repo (`python -m http.server`), open `tools/room-viewer/index.html?plan=…` |
+| `product-research/` | price normalisation, dedupe, polite scraper starter | `npm run test:py` |
 
 Plan format: `clash-audit/plan.schema.json` (JSON Schema), example in `examples/example-flat/plan.json`. The audit
 validates the plan first and exits 3 on a bad one (missing fields, unknown walls, duplicate ids, centimetres). Coordinates in metres, x west → east, z south → north, origin at each
