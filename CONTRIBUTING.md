@@ -13,5 +13,7 @@ Rules: no personal data (addresses, photos of people, order numbers), no scraped
 Run the tests before a pull request:
 
 ```
-node --test tools/clash-audit/audit.test.mjs
+npm test
 ```
+
+CI runs the same tests on Node 18, 20, 22 and 24, then audits `examples/example-flat/plan.json`.

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gitkvash/home-design-toolkit/tools/clash-audit/plan.schema.json",
+  "title": "Home Design Toolkit plan",
+  "description": "Rooms, doors, windows and furniture boxes. All lengths in METRES. x runs west to east, z runs south to north, origin at each room's south-west inner corner. validate.mjs enforces this schema plus the cross-field checks a schema cannot express (unique ids, nestIn targets, doors inside their wall, centimetre mix-ups).",
+  "type": "object",
+  "required": ["rooms"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string" },
+    "units": { "type": "string", "description": "Free text note; lengths are always metres." },
+    "ceiling": { "type": "number", "exclusiveMinimum": 0, "maximum": 10, "description": "Ceiling height, m." },
+    "rooms": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/room" } }
+  },
+  "$defs": {
+    "wall": { "enum": ["S", "N", "W", "E"] },
+    "length": { "type": "number", "exclusiveMinimum": 0, "maximum": 30 },
+    "coord": { "type": "number", "minimum": -1, "maximum": 30 },
+    "room": {
+      "type": "object",
+      "required": ["id", "size"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "size": {
+          "type": "object",
+          "required": ["w", "d"],
+          "properties": {
+            "w": { "$ref": "#/$defs/length", "description": "Interior width along x, m." },
+            "d": { "$ref": "#/$defs/length", "description": "Interior depth along z, m." }
+          }
+        },
+        "doors": { "type": "array", "items": { "$ref": "#/$defs/door" } },
+        "windows": { "type": "array", "items": { "$ref": "#/$defs/window" } },
+        "targets": { "type": "array", "items": { "$ref": "#/$defs/target" } },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/item" } }
+      }
+    },
+    "door": {
+      "type": "object",
+      "required": ["id", "wall", "pos", "width"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "wall": { "$ref": "#/$defs/wall" },
+        "pos": { "$ref": "#/$defs/coord", "description": "Centre of the opening along the wall, m." },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "Clear opening = leaf length, m." },
+        "hinge": { "enum": ["start", "end"], "default": "start" },
+        "opens": { "enum": ["in", "out"], "default": "in" },
+        "kind": { "enum": ["swing", "slide", "arch"], "default": "swing" }
+      }
+    },
+    "window": {
+      "type": "object",
+      "required": ["id", "wall", "pos", "width"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "wall": { "$ref": "#/$defs/wall" },
+        "pos": { "$ref": "#/$defs/coord" },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 },
+        "sill": { "type": "number", "minimum": 0, "maximum": 10 },
+        "head": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["name", "x", "z"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "x": { "$ref": "#/$defs/coord" },
+        "z": { "$ref": "#/$defs/coord" }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["id", "x", "z", "w", "d", "h"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "x": { "$ref": "#/$defs/coord", "description": "West edge, m." },
+        "z": { "$ref": "#/$defs/coord", "description": "South edge, m." },
+        "w": { "$ref": "#/$defs/length", "description": "Size along x, m." },
+        "d": { "$ref": "#/$defs/length", "description": "Size along z, m." },
+        "h": { "type": "number", "exclusiveMinimum": 0, "maximum": 10, "description": "Height, m." },
+        "y0": { "type": "number", "minimum": 0, "maximum": 10, "description": "Height of the underside off the floor, m." },
+        "color": { "type": "string" },
+        "nestIn": { "type": "string", "description": "id of an item in the same room this one sits inside (skips the overlap check)." }
+      }
+    }
+  }
+}

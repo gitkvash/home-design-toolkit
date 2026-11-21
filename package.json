@@ -1,0 +1,14 @@
+{
+  "name": "home-design-toolkit",
+  "version": "0.1.0",
+  "description": "Free core of the Home Design Toolkit: home survey, layout clearances and a clash audit for floor plans.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test tools/clash-audit/audit.test.mjs",
+    "audit": "node tools/clash-audit/audit.mjs",
+    "audit:example": "node tools/clash-audit/audit.mjs examples/example-flat/plan.json"
+  }
+}

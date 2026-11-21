@@ -8,6 +8,7 @@
 //   swing  items standing in a door's swing arc
 //   route  widest bottleneck (cm) from the door to each target (default: far corner of the room)
 //   clear  free floor area (m2), obstacles = anything between 35 cm and head height (1.8 m)
+// The plan is validated first (validatePlan, mirrors plan.schema.json); an invalid plan exits 3 with every problem listed.
 
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -37,6 +38,128 @@ class MaxHeap {
     }
     return top;
   }
+}
+
+// --- plan validation. Kept in this file (not imported) so the script still runs on its own from a temp copy.
+// Mirrors plan.schema.json and adds what a schema cannot say: unique ids, nestIn targets, doors inside their wall.
+const WALLS = ['S', 'N', 'W', 'E'];
+
+export function validatePlan(plan) {
+  const errs = [];
+  const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const num = (path, v, { min = -Infinity, gt = false, max = Infinity, need = true } = {}) => {
+    if (v === undefined) { if (need) errs.push(`${path}: missing (number, metres)`); return false; }
+    if (typeof v !== 'number' || !Number.isFinite(v)) { errs.push(`${path}: ${JSON.stringify(v)} is not a number`); return false; }
+    if (gt ? v <= min : v < min) { errs.push(`${path}: ${v} must be ${gt ? '>' : '>='} ${min}`); return false; }
+    if (v > max) {
+      const cm = v / 100 <= max ? ' - looks like centimetres; lengths are metres' : '';
+      errs.push(`${path}: ${v} is above ${max}${cm}`);
+      return false;
+    }
+    return true;
+  };
+  const str = (path, v, need = true) => {
+    if (v === undefined) { if (need) errs.push(`${path}: missing (string)`); return; }
+    if (typeof v !== 'string' || !v) errs.push(`${path}: must be a non-empty string`);
+  };
+  const oneOf = (path, v, allowed, need = true) => {
+    if (v === undefined) { if (need) errs.push(`${path}: missing (${allowed.join('|')})`); return; }
+    if (!allowed.includes(v)) errs.push(`${path}: ${JSON.stringify(v)} is not one of ${allowed.join('|')}`);
+  };
+  const list = (path, v) => {
+    if (v === undefined) return [];
+    if (!Array.isArray(v)) { errs.push(`${path}: must be an array`); return []; }
+    return v;
+  };
+  const label = (base, el, i) => `${base}[${isObj(el) && typeof el.id === 'string' ? el.id : i}]`;
+  const unique = (path, arr) => {
+    const seen = new Set();
+    for (const el of arr) if (isObj(el) && typeof el.id === 'string') {
+      if (seen.has(el.id)) errs.push(`${path}: id "${el.id}" is used twice`);
+      seen.add(el.id);
+    }
+  };
+
+  if (!isObj(plan)) return ['plan: must be a JSON object'];
+  if (plan.ceiling !== undefined) num('ceiling', plan.ceiling, { min: 0, gt: true, max: 10 });
+  if (!Array.isArray(plan.rooms) || !plan.rooms.length) return [...errs, 'rooms: must be a non-empty array'];
+  unique('rooms', plan.rooms);
+
+  plan.rooms.forEach((room, ri) => {
+    const rp = label('rooms', room, ri);
+    if (!isObj(room)) { errs.push(`${rp}: must be an object`); return; }
+    str(`${rp}.id`, room.id);
+    let W = NaN, D = NaN;
+    if (!isObj(room.size)) errs.push(`${rp}.size: missing ({ w, d } in metres)`);
+    else {
+      if (num(`${rp}.size.w`, room.size.w, { min: 0, gt: true, max: 30 })) W = room.size.w;
+      if (num(`${rp}.size.d`, room.size.d, { min: 0, gt: true, max: 30 })) D = room.size.d;
+    }
+    const wallLen = (wall) => (wall === 'S' || wall === 'N' ? W : wall === 'W' || wall === 'E' ? D : NaN);
+    const inWall = (path, o) => {
+      const L = wallLen(o.wall);
+      if (Number.isFinite(L) && typeof o.pos === 'number' && typeof o.width === 'number'
+        && (o.pos - o.width / 2 < -0.02 || o.pos + o.width / 2 > L + 0.02))
+        errs.push(`${path}: opening ${o.pos} +/- ${o.width / 2} runs past the ${o.wall} wall (0..${L})`);
+    };
+
+    const doors = list(`${rp}.doors`, room.doors);
+    unique(`${rp}.doors`, doors);
+    doors.forEach((d, i) => {
+      const p = label(`${rp}.doors`, d, i);
+      if (!isObj(d)) { errs.push(`${p}: must be an object`); return; }
+      str(`${p}.id`, d.id);
+      oneOf(`${p}.wall`, d.wall, WALLS);
+      num(`${p}.pos`, d.pos, { min: -1, max: 30 });
+      num(`${p}.width`, d.width, { min: 0, gt: true, max: 3 });
+      oneOf(`${p}.hinge`, d.hinge, ['start', 'end'], false);
+      oneOf(`${p}.opens`, d.opens, ['in', 'out'], false);
+      oneOf(`${p}.kind`, d.kind, ['swing', 'slide', 'arch'], false);
+      inWall(p, d);
+    });
+
+    const windows = list(`${rp}.windows`, room.windows);
+    windows.forEach((w, i) => {
+      const p = label(`${rp}.windows`, w, i);
+      if (!isObj(w)) { errs.push(`${p}: must be an object`); return; }
+      str(`${p}.id`, w.id);
+      oneOf(`${p}.wall`, w.wall, WALLS);
+      num(`${p}.pos`, w.pos, { min: -1, max: 30 });
+      num(`${p}.width`, w.width, { min: 0, gt: true, max: 10 });
+      const sillOk = num(`${p}.sill`, w.sill, { min: 0, max: 10, need: false });
+      const headOk = num(`${p}.head`, w.head, { min: 0, gt: true, max: 10, need: false });
+      if (sillOk && headOk && w.sill !== undefined && w.head !== undefined && w.head <= w.sill)
+        errs.push(`${p}: head ${w.head} must be above sill ${w.sill}`);
+      inWall(p, w);
+    });
+
+    list(`${rp}.targets`, room.targets).forEach((t, i) => {
+      const p = `${rp}.targets[${isObj(t) && typeof t.name === 'string' ? t.name : i}]`;
+      if (!isObj(t)) { errs.push(`${p}: must be an object`); return; }
+      str(`${p}.name`, t.name);
+      num(`${p}.x`, t.x, { min: -1, max: 30 });
+      num(`${p}.z`, t.z, { min: -1, max: 30 });
+    });
+
+    const items = list(`${rp}.items`, room.items);
+    unique(`${rp}.items`, items);
+    const ids = new Set(items.filter(isObj).map((it) => it.id));
+    items.forEach((it, i) => {
+      const p = label(`${rp}.items`, it, i);
+      if (!isObj(it)) { errs.push(`${p}: must be an object`); return; }
+      str(`${p}.id`, it.id);
+      num(`${p}.x`, it.x, { min: -1, max: 30 });
+      num(`${p}.z`, it.z, { min: -1, max: 30 });
+      num(`${p}.w`, it.w, { min: 0, gt: true, max: 30 });
+      num(`${p}.d`, it.d, { min: 0, gt: true, max: 30 });
+      num(`${p}.h`, it.h, { min: 0, gt: true, max: 10 });
+      num(`${p}.y0`, it.y0, { min: 0, max: 10, need: false });
+      if (it.color !== undefined && typeof it.color !== 'string') errs.push(`${p}.color: must be a string`);
+      if (it.nestIn !== undefined && (it.nestIn === it.id || !ids.has(it.nestIn)))
+        errs.push(`${p}.nestIn: "${it.nestIn}" is not another item in this room`);
+    });
+  });
+  return errs;
 }
 
 export function auditRoom(room) {
@@ -173,7 +296,15 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv
 if (isMain) {
   const [file, only] = process.argv.slice(2);
   if (!file) { console.log('usage: node audit.mjs <plan.json> [roomId]'); process.exit(1); }
-  const plan = JSON.parse(readFileSync(file, 'utf8'));
+  let plan;
+  try { plan = JSON.parse(readFileSync(file, 'utf8')); }
+  catch (e) { console.error(`cannot read ${file}: ${e.message}`); process.exit(3); }
+  const errs = validatePlan(plan);
+  if (errs.length) {
+    console.error(`${file}: invalid plan (${errs.length} problem${errs.length > 1 ? 's' : ''}), see plan.schema.json`);
+    for (const e of errs) console.error(`  ${e}`);
+    process.exit(3);
+  }
   let bad = 0;
   for (const room of plan.rooms) {
     if (only && room.id !== only) continue;

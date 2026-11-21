@@ -37,8 +37,12 @@ The audit runs on plain Node 18+, no installs:
 
 ```
 node tools/clash-audit/audit.mjs examples/example-flat/plan.json
-node --test tools/clash-audit/audit.test.mjs
+npm test
 ```
+
+Plans are checked against [`tools/clash-audit/plan.schema.json`](tools/clash-audit/plan.schema.json) before the audit
+runs. A malformed plan, or one written in centimetres instead of metres, exits with code 3 and a list of what is wrong.
+Add `"$schema": "<path to plan.schema.json>"` to a plan to get the same checks in your editor.
 
 Other assistants: the skills are plain Markdown with a short front-matter, so you can paste a `SKILL.md` into any
 agent that supports instruction files.
