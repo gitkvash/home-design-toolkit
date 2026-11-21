@@ -8,8 +8,6 @@ finishes, planned room by room with 3D models, layout audits and a lot of correc
 
 Free and open source (MIT). No account, no API key, no installs beyond Node 18+.
 
-*Georgian version: [README.ka.md](README.ka.md)*
-
 [![test](https://github.com/gitkvash/home-design-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/gitkvash/home-design-toolkit/actions/workflows/test.yml)
 ![license: MIT](https://img.shields.io/badge/license-MIT-green)
 
