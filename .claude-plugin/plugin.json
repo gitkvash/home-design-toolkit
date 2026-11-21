@@ -1,0 +1,16 @@
+{
+  "name": "home-design",
+  "version": "0.1.0",
+  "description": "Start planning a home renovation with AI: survey a flat into a trustworthy plan and audit layouts for door swings, routes and clearances. Free core of the Home Design Toolkit.",
+  "license": "MIT",
+  "keywords": [
+    "interior-design",
+    "renovation",
+    "home",
+    "floor-plan",
+    "three.js",
+    "kitchen",
+    "bathroom",
+    "lighting"
+  ]
+}

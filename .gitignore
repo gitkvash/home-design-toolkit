@@ -1,0 +1,6 @@
+node_modules/
+.claude/
+.viewer-check.mjs
+out/
+__pycache__/
+*.pyc

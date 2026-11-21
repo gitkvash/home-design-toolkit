@@ -1,0 +1,46 @@
+{
+  "name": "Example flat (invented, 52 m2, two rooms plus bath)",
+  "units": "metres; x west->east, z south->north, origin at each room's SW inner corner",
+  "ceiling": 2.6,
+  "rooms": [
+    {
+      "id": "living",
+      "label": "Living room + kitchen",
+      "size": { "w": 5.2, "d": 4.6 },
+      "doors": [
+        { "id": "living-hall", "wall": "S", "pos": 0.9, "width": 0.9, "hinge": "start", "opens": "in" }
+      ],
+      "windows": [
+        { "id": "living-w1", "wall": "N", "pos": 2.6, "width": 2.4, "sill": 0.9, "head": 2.3 }
+      ],
+      "targets": [
+        { "name": "window", "x": 2.6, "z": 4.1 },
+        { "name": "kitchen end", "x": 4.2, "z": 3.5 }
+      ],
+      "items": [
+        { "id": "kitchen-run", "x": 4.55, "z": 0.6, "w": 0.65, "d": 3.4, "h": 0.9 },
+        { "id": "kitchen-tall", "x": 4.55, "z": 4.0, "w": 0.65, "d": 0.6, "h": 2.1 },
+        { "id": "table", "x": 2.3, "z": 0.7, "w": 1.5, "d": 0.9, "h": 0.75 },
+        { "id": "sofa", "x": 1.1, "z": 1.9, "w": 0.95, "d": 2.1, "h": 0.85 },
+        { "id": "tv-unit", "x": 0.0, "z": 1.6, "w": 0.4, "d": 2.5, "h": 0.5 }
+      ]
+    },
+    {
+      "id": "bedroom",
+      "label": "Bedroom",
+      "size": { "w": 3.6, "d": 3.4 },
+      "doors": [
+        { "id": "bed-hall", "wall": "E", "pos": 0.7, "width": 0.8, "hinge": "start", "opens": "in" }
+      ],
+      "windows": [
+        { "id": "bed-w1", "wall": "N", "pos": 1.8, "width": 1.5, "sill": 0.9, "head": 2.3 }
+      ],
+      "targets": [{ "name": "window", "x": 2.3, "z": 3.0 }],
+      "items": [
+        { "id": "bed", "x": 0.0, "z": 0.5, "w": 1.6, "d": 2.1, "h": 0.55 },
+        { "id": "wardrobe", "x": 2.95, "z": 1.6, "w": 0.65, "d": 1.8, "h": 2.2 },
+        { "id": "desk", "x": 0.2, "z": 2.8, "w": 1.2, "d": 0.6, "h": 0.75 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "home-design-toolkit",
+  "owner": { "name": "gitkvash" },
+  "plugins": [
+    {
+      "name": "home-design",
+      "source": "./",
+      "description": "Skills, agents and tools for planning and renovating a home."
+    }
+  ]
+}
