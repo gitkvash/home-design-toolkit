@@ -13,6 +13,15 @@ Free and open source (MIT). No account, no API key, no installs beyond Node 18+.
 [![test](https://github.com/gitkvash/home-design-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/gitkvash/home-design-toolkit/actions/workflows/test.yml)
 ![license: MIT](https://img.shields.io/badge/license-MIT-green)
 
+![The 69 m² flat this toolkit was built on, modelled in three.js](docs/home-3d.jpg)
+
+| Living room and kitchen island | Plan view |
+|---|---|
+| ![Living room with kitchen island](docs/home-living.jpg) | ![Top-down plan of the flat](docs/home-plan.jpg) |
+
+*The real flat behind this toolkit: measured, laid out, audited and furnished with these skills, then built as a
+three.js model (see the `build-3d-room-model` skill and `tools/room-viewer`).*
+
 ## What it catches
 
 ```
@@ -27,8 +36,6 @@ route NARROW kitchen end: 60 cm (min 75)
 
 The example flat looks fine on a picture. The audit says you cannot comfortably walk to the window or to the end of
 the kitchen.
-
-![The same room in the three.js room viewer](docs/room-viewer.jpg)
 
 A door that hits the sofa, a dishwasher you cannot open with the oven door down, wallpaper ordered without the
 pattern repeat, a pendant that does not fit the ceiling gap. These are the mistakes that cost money. The toolkit turns
