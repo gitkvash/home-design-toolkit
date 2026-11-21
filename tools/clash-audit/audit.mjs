@@ -10,6 +10,7 @@
 //   clear  free floor area (m2), obstacles = anything between 35 cm and head height (1.8 m)
 
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const CELL = 0.04; // grid resolution
 const OBST_LOW = 0.35, OBST_HIGH = 1.8;
@@ -167,7 +168,9 @@ export function format(r, minRoute = 75) {
   return lines.join('\n');
 }
 
-if (process.argv[1]?.endsWith('audit.mjs')) {
+// Run the CLI when this file is the entry point, whatever it is named (marketplaces run it from a temp file).
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
   const [file, only] = process.argv.slice(2);
   if (!file) { console.log('usage: node audit.mjs <plan.json> [roomId]'); process.exit(1); }
   const plan = JSON.parse(readFileSync(file, 'utf8'));
